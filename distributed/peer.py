@@ -32,6 +32,9 @@ def ScanFrames (input_path, output_path):
         HandleFrame(fn, output_path)
         tend = datetime.now()
     	print("Finished handling frame " + str(tend - tstart))
+    ffmpegBuild = subprocess.Popen(["ffmpeg", "-i", output_path, output_path+"final.mp4"], stdout=outstream, stderr=subprocess.STDOUT)# Run FFMPEG to rebake the video
+    ffmpegBuild.wait()
+    cleanUpImages(input_path, output_path)
 
 def HandleFrame(input_path, output_path):
 	img = cv2.imread(input_path, 1)
@@ -42,8 +45,8 @@ def HandleFrame(input_path, output_path):
     markPupil(img, pupilData, breadthList)
 
     cv2.imwrite(output_path, img)
-    ffmpegBuild = subprocess.Popen(["ffmpeg", "-i", output_path, output_path+"final.mp4"], stdout=outstream, stderr=subprocess.STDOUT)# Run FFMPEG to rebake the video
-    ffmpegBuild.wait() 
+
+
 
 def detectFrame(img):
 	global detector, predictor, image_ratio
@@ -140,8 +143,10 @@ def markPupil(img, pupilData, breadthList):
 	else:
 		print("Permission denied. (mark Pupil")
 
-def cleanUpImages(input_path):
+def cleanUpImages(input_path, output_path):
 	for f in glob.glob(input_path[:input_path.rfind(".")] + "*.png"):
+		os.remove(f)
+	for f in glob.glob(output_path[:output_path.rfind(".")] + "*.png"):
 		os.remove(f)
 
 

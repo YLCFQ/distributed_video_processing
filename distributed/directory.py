@@ -5,6 +5,7 @@ import time
 import os
 import multiprocessing
 from collections import deque
+import datetime
 #from twisted.python import log
 #from twisted.internet import reactor
 #from autobahn.twisted.websocket import WebSocketServerProtocol
@@ -58,17 +59,17 @@ class ProcessThread(threading.Thread):
 				midPath = split_directory[:split_directory.rfind(".")] + "%d.png"
 				#1-24.png
 
-				
-
-
-
 				offset = request.offset #-ss flag for ffmpeg
 				duration = request.duration #-t flag for ffmpeg
 				#DO FFMPEG SPLIT
 
+				start = datetime.now()
+				print ('\t\t' + str(offset) + " processing start");
 				ffmpegBreak = subprocess.Popen(["ffmpeg", "-ss", offset] + ["-t", duration] + ["-i", movie_file, midPath], stdout=outstream, stderr=subprocess.STDOUT)
 				ffmpegBreak.wait()
 
+				end = datetime.now()
+				print ('\t\t' + str(offset) + " splitting finished at: " + str(end - start))
 				#Once done splitting here
 
 				send_available(request.id, request.index, split_directory)
