@@ -3,7 +3,7 @@ import threading
 import os
 import time
 from collections import deque
-from packet import Packet, PacketType, Header, CompletePacket, RegisterPacket, LoadPacket
+from packet import Packet, PacketType, Header, RegisterPacket, LoadPacket
 
 
 packet_queue = deque()
@@ -42,12 +42,24 @@ class ReceiveThread(threading.Thread):
 			packet_queue.append(RegisterPacket().unpack(packetBytes))
 		elif header.type == PacketType.Load:
 			packet_queue.append(LoadPacket().unpack(packetBytes))
-		elif header.type == PacketType.Complete:
-			packet_queue.append(CompletePacket().unpack(packetBytes))
-		elif header.type == PacketType.Progress:
-			packet_queue.append(ProgressPacket().unpack(packetBytes))
-		print "Packet has been added to packet queue"
+		else:
+			packet_queue.append(Packet().unpack(packetBytes))
 
 peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-peer_socket.connect(('0.0.0.0', 27015))
+try:
+	peer_socket.connect(('0.0.0.0', 27015))
+	initialHeader = Header()
+	initialHeader.type = PacketType.Register
+
+	registerPacket = RegisterPacket()
+	registerPacket.id = 0
+
+	initialHeader.size = len(str(registerPacket.pack()))
+	peer_socket.send(initialHeader.pack())
+	peer_socket.send(registerPacket.pack())
+
+except Exception as e:
+	print "Error occurred while connecting " + str(e)
+	exit(0)
 ReceiveThread(peer_socket).start()
+PacketThread().start()

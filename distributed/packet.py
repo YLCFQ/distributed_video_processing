@@ -1,4 +1,3 @@
-import packet
 from abc import ABCMeta, abstractmethod
 from enum import Enum
 import struct
@@ -76,5 +75,3 @@ class LoadPacket(Packet):
 			return struct.pack("i", self.id) + struct.pack("i", self.index)
 		except Exception as e:
 			print "Error unpacking " + str(e)
-
-			

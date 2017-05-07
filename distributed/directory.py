@@ -1,5 +1,5 @@
 import socket
-from packet import PacketType, Packet, RegisterPacket, ProgressPacket, CompletePacket, Header
+from packet import PacketType, Packet, RegisterPacket, LoadPacket, Header
 import threading
 import time
 import os
@@ -35,7 +35,7 @@ class PacketThread(threading.Thread):
 
 				if type(packet) is RegisterPacket:
 					#Handle register pqacket here
-					1
+					print "Handling register packet"
 				elif type(packet) is LoadPacket:
 					1
 				elif type(packet) is ProgressPacket:
@@ -61,6 +61,7 @@ class AcceptThread(threading.Thread):
 		while alive:
 			(new_socket, address) = self.socket.accept()
 			peer_servers.append(new_socket)
+			print "Peer server has connected!"
 			ReceiveThread(new_socket).start()
 
 
@@ -72,23 +73,27 @@ class ReceiveThread(threading.Thread):
 		global alive, packet_queue
 		while alive:
 			headerBytes = self.socket.recv(8)
-			header = Header().unpack(headerBytes)
+			header = Header()
+			header.unpack(headerBytes)
+			print "Received a packet!"
 
 			packetBytes = self.socket.recv(header.size)
 
 			if header.type == PacketType.Register:
-				packet_queue.append(RegisterPacket().unpack(packetBytes))
+				print "Found a register packet!"
+				packet = RegisterPacket()
+				packet.unpack(packetBytes)
+				packet_queue.append(packet)
 			
 			elif header.type == PacketType.Load:
-				packet_queue.append(LoadPacket().unpack(packetBytes))
+				packet = LoadPacket()
+				packet.unpack(packetBytes)
+				packet_queue.append(packet)
 			
-			elif header.type == PacketType.Progress:
-				packet_queue.append(ProgressPacket().unpack(packetBytes))
-			
-			elif header.type == PacketType.Complete:
-				packet_queue.append(CompletePacket().unpack(packetBytes))
 			else:
-				packet_queue.append(Packet().unpack(packetBytes))
+				packet = Packet()
+				packet.unpack(packetBytes)
+				packet_queue.append(packet)
 			
 			print "Packet has been added to packet queue"
 
@@ -99,6 +104,7 @@ master_socket.bind(('0.0.0.0', 27015))
 master_socket.listen(0)
 
 AcceptThread(master_socket).start()
+PacketThread().start()
 
 while alive:	
 	time.sleep(1)
