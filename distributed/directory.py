@@ -18,7 +18,7 @@ peer_paramiko = []
 #These are parallel arrays
 packet_queue = deque()
 packet_semaphore = threading.Semaphore(0)
-peer_count = 0 
+peer_count = -1
 
 #Websocket server
 #WebSocketServerProtocol)
@@ -37,10 +37,10 @@ class MyServerProtocol():
 
 class ProcessRequest:
 	def __init__(self, offset, duration, index, id):
-		self.offset = offset
-		self.duration = duration
-		self.index = index
-		self.id = id
+		self.offset = offset #-ss 00:25
+		self.duration = duration #-t 00:01
+		self.index = index #0-29
+		self.id = id #12394e982348923
 
 class ProcessThread(threading.Thread):
 	def __init__(self, threadID):
@@ -55,6 +55,12 @@ class ProcessThread(threading.Thread):
 				request = process_queue.popleft()
 				movie_file = './processing/' + str(request.id) + '/movie.mp4'
 				split_directory = './processing/' + str(request.id) + '/' + str(request.index) '/'
+				#1-24.png
+
+				#DO FFMPEG SPLIT
+
+
+
 				offset = request.offset #-ss flag for ffmpeg
 				duration = request.duration #-t flag for ffmpeg
 
@@ -134,7 +140,8 @@ class ReceiveThread(threading.Thread):
 			print "Packet has been added to packet queue"
 def determine_split(path):
 	#Given a path determine how many splits are there. For example 0:30 with 1 second split is 30 splits
-	return 5
+	#Ffprobe
+	return 30
 def process(id):
 	global process_queue
 	print "Processing " + str(id) + ".mp4"
@@ -154,6 +161,8 @@ def send_available(id, index, path):
 	global peer_count, peer_servers, peer_paramiko
 	#Given a path like ./processing/0/0/
 	#Send all files in that path to a server
+	peer_count = peer_count + 1
+
 	if peer_count >= len(peer_servers):
 		peer_count = 0
 
@@ -162,7 +171,6 @@ def send_available(id, index, path):
 	for root, directories, filenames in os.walk(path):
 		for filename in filenames:
 			1 #include SCP here
-
 	loadHeader = Header()
 	loadHeader.type = PacketType.LoadPacket
 
@@ -176,7 +184,6 @@ def send_available(id, index, path):
 	peer_servers[peer_count].sendall(loadHeader.pack())
 	peer_servers[peer_count].sendall(loadPacket.pack())
 
-	peer_count = peer_count + 1
 
 
 
