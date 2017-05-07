@@ -1,24 +1,35 @@
 import packet
 from abc import ABCMeta, abstractmethod
 from enum import Enum
+import struct
 
 class PacketType(Enum):
 	Packet = 0
 	Register = 1
 	Load = 2
-	Progress = 3
-	Complete = 4
 	
 #4 bytes for packet type
 #4 bytes for packet size
 class Header:
+	type = None
+	size = 0
 	def __init__(self):
 		1
 	def unpack(self, bytes):
 		#Take them all out
-		1
+		try:
+			self.type = struct.unpack_from("i", bytes[0:4])[0]
+			self.size = struct.unpack_from("i", bytes[4:8])[0]
+		except Exception as e:
+			print "Error unpacking " + str(e)
+
 	def pack(self):
-		1
+		try:
+			return struct.pack("i", self.type) + struct.pack("i", self.size)
+		except Exception as e:
+			print "Error packing " + str(e)
+			return None
+
 
 		
 
@@ -33,30 +44,37 @@ class Packet:
 
 class RegisterPacket(Packet):
 	__metaclass = ABCMeta
+	id = None
 	def __init__(self):
 		1
 	def unpack(self, bytes):
-		1
+		try:
+			self.id = struct.unpack_from("i", bytes[0:4])[0]
+		except Exception as e:
+			print "Error unpacking " + str(e)
+
 	def pack(self):
-		1
+		try:
+			return struct.pack("i", self.id)
+		except Exception as e:
+			print "Error packing " + str(e)
 
 #From directory to peer
-def LoadPacket(Packet):
-	def pack(self):
-		1
-	def unpack(self,bytes):
-		1
-
-class ProgressPacket(Packet):
-	def unpack(self,bytes):
-		1
-	def pack(self):
-		1
-#From peer to directory
-def CompletePacket(Packet):
+class LoadPacket(Packet):
+	id = None
+	index = None
 	def __init__(self):
 		1
 	def unpack(self, bytes):
-		1
+		try:
+			self.id = struct.unpack_from("i", bytes[0:4])[0]
+			self.index = struct.unpack_from("i", bytes[4:8])[0]
+		except Exception as e:
+			print "Error unpacking " + str(e)
 	def pack(self):
-		1		
+		try:
+			return struct.pack("i", self.id) + struct.pack("i", self.index)
+		except Exception as e:
+			print "Error unpacking " + str(e)
+
+			
