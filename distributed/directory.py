@@ -55,14 +55,19 @@ class ProcessThread(threading.Thread):
 				request = process_queue.popleft()
 				movie_file = './processing/' + str(request.id) + '/movie.mp4'
 				split_directory = './processing/' + str(request.id) + '/' + str(request.index) '/'
+				midPath = split_directory[:split_directory.rfind(".")] + "%d.png"
 				#1-24.png
 
-				#DO FFMPEG SPLIT
+				
 
 
 
 				offset = request.offset #-ss flag for ffmpeg
 				duration = request.duration #-t flag for ffmpeg
+				#DO FFMPEG SPLIT
+
+				ffmpegBreak = subprocess.Popen(["ffmpeg", "-ss", offset] + ["-t", duration] + ["-i", movie_file, midPath], stdout=outstream, stderr=subprocess.STDOUT)
+				ffmpegBreak.wait()
 
 				#Once done splitting here
 
