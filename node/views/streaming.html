@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<head>
+<title>Streaming</title>
+<script type="text/javascript">
+
+var id = <%- JSON.stringify(id) %>;
+var address = <%- JSON.stringify(address) %>;
+var port = <%- JSON.stringify(port) %>;
+
+var stream = [];
+
+
+var firstMessage = true;
+
+var streaming = new WebSocket('ws://' + address + ':' + port);
+
+streaming.onopen = function(){
+	streaming.send(id); //We need to send the id to the directory server
+}
+streaming.onmessage = function(e){
+	if (firstMessage){
+		var count = Integer.parseInt(e.data);
+		for(int i=0; i<count; i++){
+			stream.append("None");
+		}
+		firstMessage = false;
+	}else{
+		var video_id = e.data;
+		video_id = video_id.replace(id + "_", ""); //112313131231_0.mp4 is now 0.mp4
+		video_id = video_id.replace(".mp4", ""); //0.mp4 is now 0
+		stream[video_id] = e.data; //ghetto bucket sort
+	}
+}
+
+
+video_count =1;
+videoPlayer = document.getElementById("ss");        
+video=document.getElementById("myVideo");
+
+function run(){
+    video_count++;
+    if (video_count == 4) video_count = 1;
+    videoPlayer.setAttribute("src","video/video"+video_count+".mp4");       
+    video.play();
+
+}
+
+
+</script>
+</head>
+</head>
+<body>
+  <video id="myVideo" height="400" width="400" autoplay onended="run();">   
+        <source id="ss"  src="video/video1.mp4" type='video/mp4'>
+    </video>
+</body>
+</html>
