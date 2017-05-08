@@ -17,6 +17,7 @@ var streaming = new WebSocket('ws://' + address + ':' + port);
 streaming.onopen = function(){
 	streaming.send(id); //We need to send the id to the directory server
 }
+/*
 streaming.onmessage = function(e){
 	if (firstMessage){
 		var count = Integer.parseInt(e.data);
@@ -44,7 +45,7 @@ function run(){
     video.play();
 
 }
-
+*/
 
 </script>
 </head>

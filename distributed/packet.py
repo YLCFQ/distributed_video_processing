@@ -66,12 +66,14 @@ class LoadPacket(Packet):
 		1
 	def unpack(self, bytes):
 		try:
-			self.id = struct.unpack_from("i", bytes[0:4])[0]
-			self.index = struct.unpack_from("i", bytes[4:8])[0]
+			self.id = struct.unpack_from("q", bytes[0:8])[0]
+			self.index = struct.unpack_from("i", bytes[8:12])[0]
 		except Exception as e:
 			print "Error unpacking " + str(e)
 	def pack(self):
 		try:
-			return struct.pack("i", self.id) + struct.pack("i", self.index)
+			print struct.pack("q", long(self.id)) + struct.pack("i", int(self.index))
+			return struct.pack("q", long(self.id)) + struct.pack("i", int(self.index))
 		except Exception as e:
-			print "Error unpacking " + str(e)
+			print "Error packing " + str(e)
+

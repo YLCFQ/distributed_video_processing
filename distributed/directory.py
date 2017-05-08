@@ -5,11 +5,14 @@ import time
 import os
 import multiprocessing
 from collections import deque
-import datetime
-#from twisted.python import log
-#from twisted.internet import reactor
-#from autobahn.twisted.websocket import WebSocketServerProtocol
-#from autobahn.twisted.websocket import WebSocketServerFactory
+import datetime 
+import math
+import subprocess
+from twisted.python import log
+from twisted.internet import reactor
+from autobahn.twisted.websocket import WebSocketServerProtocol
+from autobahn.twisted.websocket import WebSocketServerFactory
+from shutil import copyfile
 
 alive = False
 process_queue = deque()
@@ -24,17 +27,24 @@ peer_count = -1
 #Websocket server
 #WebSocketServerProtocol)
 class MyServerProtocol():
-	def onConnect(self, request):
-		print "A client has connected!"
-	def onClose(self, wasClean, code, reason):
+	#def onConnect(self, request):
+	#	print "A client has connected!"
+	#def onClose(self, wasClean, code, reason):
+	#	1
+	def dataReceived(self,data):
 		1
-	def onMessage(self, payload, isBinary):
+	def makeConnection(self, transport):
+		1
+		print "A client has connected!"
+	def connectionLost(self, reason):
+		1
+	#def onMessage(self, payload, isBinary):
 		#Receive 0 then look for 0.mp4 to process
-		print payload
-		try:
-			process(id)
-		except Exception as e:
-			print "Error occurred when receiving a message from client " + str(e)
+	#	print payload
+	#	try:
+	#		process(id)
+	#	except Exception as e:
+	#		print "Error occurred when receiving a message from client " + str(e)
 
 class ProcessRequest:
 	def __init__(self, offset, duration, index, id):
@@ -55,7 +65,7 @@ class ProcessThread(threading.Thread):
 			if process_queue:
 				request = process_queue.popleft()
 				movie_file = './processing/' + str(request.id) + '/movie.mp4'
-				split_directory = './processing/' + str(request.id) + '/' + str(request.index) '/'
+				split_directory = './processing/' + str(request.id) + '/' + str(request.index) + '/' + "%d.png"
 				midPath = split_directory[:split_directory.rfind(".")] + "%d.png"
 				#1-24.png
 
@@ -63,13 +73,12 @@ class ProcessThread(threading.Thread):
 				duration = request.duration #-t flag for ffmpeg
 				#DO FFMPEG SPLIT
 
-				start = datetime.now()
-				print ('\t\t' + str(offset) + " processing start");
-				ffmpegBreak = subprocess.Popen(["ffmpeg", "-ss", offset] + ["-t", duration] + ["-i", movie_file, midPath], stdout=outstream, stderr=subprocess.STDOUT)
+
+				outstream = open(os.devnull, 'w')
+				ffmpegBreak = subprocess.Popen(["ffmpeg", "-ss", offset] + ["-t", duration] + ["-i", movie_file, split_directory], stdout=outstream, stderr=subprocess.STDOUT)
 				ffmpegBreak.wait()
 
-				end = datetime.now()
-				print ('\t\t' + str(offset) + " splitting finished at: " + str(end - start))
+				print (request.index)
 				#Once done splitting here
 
 				send_available(request.id, request.index, split_directory)
@@ -137,36 +146,55 @@ class ReceiveThread(threading.Thread):
 				packet.unpack(packetBytes)
 				packet_queue.append(packet)
 			
-			else:
-				packet = Packet()
-				packet.unpack(packetBytes)
-				packet_queue.append(packet)
-			
 			packet_semaphore.release()
 			print "Packet has been added to packet queue"
 def determine_split(path):
 	#Given a path determine how many splits are there. For example 0:30 with 1 second split is 30 splits
 	#Ffprobe
-	return 30
+
+	duration = subprocess.check_output(['ffprobe', '-i', path, '-show_entries', 'format=duration', '-v', 'quiet', '-of', 'csv=%s' % ("p=0")])
+
+	return int(float(duration)) + 1
 def process(id):
-	global process_queue
+	global process_queue, process_semaphore
 	print "Processing " + str(id) + ".mp4"
 	#Move /uploading/0.mp4 to /processing/0/0.mp4
-	os.mkdir('./processing/' + str(id))
-	os.mkdir('./processing/' + str(id) + '/completed') #Making the completed directory. Movies will come back here SCP'd in directly.
+	if not os.path.exists('./processing/' + str(id)):
+		os.mkdir('./processing/' + str(id))
+	if not os.path.exists('./processing/' + str(id) + '/completed'):
+		os.mkdir('./processing/' + str(id) + '/completed') #Making the completed directory. Movies will come back here SCP'd in directly.
 	movie_file = './processing/' + str(id) + '/movie.mp4'
-	os.rename('./uploading/' + str(id) + '.mp4', movie_file)
+	print './uploading/' + str(id) + '.mp4'
+	#os.rename('./uploading/' + str(id) + '.mp4', movie_file)
+	copyfile('./uploading/' + str(id) + '.mp4', movie_file)
 
-	for x in range(0, len(determine_split(movie_file))):
+	start_time = "00:00:00"
+	duration = "00:00:05"
+	duration_count = 5;
+	start = datetime.datetime.now()
+	total_time = determine_split(movie_file)
+	print ('\t\t' + " processing start");
+	for x in range(0, determine_split(movie_file)/duration_count):
 		os.mkdir('./processing/' + str(id) + '/' + str(x))
-		process_queue.append(ProcessRequest(x, 1, x, id)) #Means starting at offset x to 1
+		process_queue.append(ProcessRequest(start_time, duration, x, id))
+		process_semaphore.release() #Means starting at offset x to 1
+		temp_time = datetime.datetime.strptime(start_time, '%H:%M:%S')
+		temp_time = temp_time + datetime.timedelta(0,1)
+		start_time = temp_time.strftime('%H:%M:%S')
+
 		#Need to format 00:01 from x so if x is 61 then it is 1:01
 		#Make folders from 0-4 if determine_split is given from it
+	
+	while (not os.path.exists('./processing/' + str(id) + '/' + str(23) + '/1.png')):
+		end = datetime.datetime.now()
+	print ('\t\t' + " splitting finished at: " + str(end - start))
 
 def send_available(id, index, path):
 	global peer_count, peer_servers, peer_paramiko
 	#Given a path like ./processing/0/0/
 	#Send all files in that path to a server
+	if len(peer_servers) == 0:
+		return None
 	peer_count = peer_count + 1
 
 	if peer_count >= len(peer_servers):
@@ -174,11 +202,14 @@ def send_available(id, index, path):
 
 	#paramiko
 	#send all files in path
+	print "Walking path " + path
 	for root, directories, filenames in os.walk(path):
 		for filename in filenames:
-			1 #include SCP here
+			#debugging purposes
+			#14949494940920_0_1.png
+			os.rename('./processing/' + str(id) + '/' + str(index) + '/' + filename, './received_images/' + str(index) +'/' + filename)
 	loadHeader = Header()
-	loadHeader.type = PacketType.LoadPacket
+	loadHeader.type = PacketType.Load
 
 	loadPacket = LoadPacket()
 	loadPacket.id = id
@@ -204,8 +235,11 @@ PacketThread().start()
 pu_count = multiprocessing.cpu_count()
 #Leave one out for server and other shit
 print "Starting Process Threads..."
-for x in range(0, pu_count - 1):
+for x in range(0, 1):
 	ProcessThread(x).start()
+
+time.sleep(30)
+process("1494140639824")
 
 #factory = WebSocketServerFactory()
 #factory.protocol = MyServerProtocol

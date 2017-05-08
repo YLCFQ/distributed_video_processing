@@ -19,7 +19,7 @@ alive = True
 
 #dlib library
 detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor(predictor_path) #directory for shape_predictor_68_face_landmarks.dat
+predictor = dlib.shape_predictor('./shape_predictor_68_face_landmarks.dat') #directory for shape_predictor_68_face_landmarks.dat
 
 #resize the image 
 image_ratio = 0.8
@@ -27,24 +27,24 @@ image_ratio = 0.8
 def ScanFrames (input_path, output_path):
 	g = glob.glob(input_path[:input_path.rfind(".")] + "*.png")
 	for i, fn in enumerate(g):
-        print("Handling frame " + str(i) + ":")
-        tstart = datetime.now()
-        HandleFrame(fn, output_path)
-        tend = datetime.now()
-    	print("Finished handling frame " + str(tend - tstart))
-    ffmpegBuild = subprocess.Popen(["ffmpeg", "-i", output_path, output_path+"final.mp4"], stdout=outstream, stderr=subprocess.STDOUT)# Run FFMPEG to rebake the video
-    ffmpegBuild.wait()
-    cleanUpImages(input_path, output_path)
+		print ("Handling frame " + str(i) + ":")
+		tstart = datetime.now()
+		HandleFrame(fn, output_path)
+		tend = datetime.now()
+		print("Finished handling frame " + str(tend - tstart))
+	ffmpegBuild = subprocess.Popen(["ffmpeg", "-i", output_path, output_path+"final.mp4"], stdout=outstream, stderr=subprocess.STDOUT)# Run FFMPEG to rebake the video
+	ffmpegBuild.wait()
+	cleanUpImages(input_path, output_path)
 
 def HandleFrame(input_path, output_path):
 	img = cv2.imread(input_path, 1)
 
 	ptsList, breadthList = detectFrame(img)
-    markFrame(img, ptsList, breadthList)
-    pupilData = getPupilData(input_path) #IPC to get pupil data
-    markPupil(img, pupilData, breadthList)
+	markFrame(img, ptsList, breadthList)
+	pupilData = getPupilData(input_path) #IPC to get pupil data
+	markPupil(img, pupilData, breadthList)
 
-    cv2.imwrite(output_path, img)
+	cv2.imwrite(output_path, img)
 
 
 
@@ -52,38 +52,38 @@ def detectFrame(img):
 	global detector, predictor, image_ratio
 
 	image = cv2.resize(img, (0,0), fx=image_ratio, fy=image_ratio)
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    detections = detector(gray, 1)# type(detections) == dlib.rectangles
+	gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+	detections = detector(gray, 1)# type(detections) == dlib.rectangles
 
-    ptsList = []
-    breadthList = []
+	ptsList = []
+	breadthList = []
 
-    for i, d in enumerate(detections):# type(d) == dlib.rectangle
-        print("\t\tBeginning prediction (detection " + str(i) + ")")
-        tstart = datetime.now()
-        shape = predictor(gray, d)# type(shape) == dlib.full_object_detection
+	for i, d in enumerate(detections):# type(d) == dlib.rectangle
+		print("\t\tBeginning prediction (detection " + str(i) + ")")
+		tstart = datetime.now()
+		shape = predictor(gray, d)# type(shape) == dlib.full_object_detection
 
-        pts = []
-        for p in shape.parts():
-            if p.x > 0 and p.y >0:
+		pts = []
+		for p in shape.parts():
+			if p.x > 0 and p.y >0:
                 #pts.append((p.x, p.y))
-                pts.append((p.x/image_ratio, p.y/image_ratio))
-        ptsList.append(pts)
+				pts.append((p.x/image_ratio, p.y/image_ratio))
+		ptsList.append(pts)
 	
 	breadthList.append(np.sqrt(d.width() ** 2 + d.height() ** 2)) #this is a list of magnitudes of the hypotenuse (so called breadth) of the face detection
 	tend = datetime.now()
 	print("\t\t" + str(tend - tstart))
 
-    return ptsList, breadthList
+	return ptsList, breadthList
 
 def markFrame(img, ptsList, breadthList):
 	if raw_input("Overwrite " + fn + " Y/N?") == "Y":
 		print("\t\tBeginning Delauney drawing algorithm")
 		tstart = datetime.now()
 	
-        tend = datetime.now()
-        i = 0
-        for pts in ptsList:
+		
+		i = 0
+		for pts in ptsList:
 			bounds = (0, 0, img.shape[1], img.shape[0])
 			subdiv = cv2.Subdiv2D(bounds)
 			for p in pts:
@@ -99,9 +99,10 @@ def markFrame(img, ptsList, breadthList):
 					cv2.line(img, pt2, pt3, (0, 255, 0), int(breadthList[i] * 1/100), 8, 0)
 					cv2.line(img, pt3, pt1, (0, 255, 0), int(breadthList[i] * 1/100), 8, 0)
 			i+=1 #something weird may happen
-	print("\t\t" + str(tend - tstart))
-    else:
-        print("Permission denied. (mark Frame)")
+		tend = datetime.now()
+		print("\t\t" + str(tend - tstart))
+	else:
+		print("Permission denied. (mark Frame)")
 
 def getPupilData(input_path):
 	print("\t\tsubprocessing pupil data")
@@ -118,7 +119,6 @@ def getPupilData(input_path):
 		for i, sp in enumerate(spaceIndexing):
 			if i & 1 == 0: #every other one (think c: step+=2)
 				pupilData.append((int(sp), int(spaceIndexing[i+1])))
-   
 	else:
 		pupilData.append((-1, -1)) #dummy data necessary for drawing appropriate scaled pupils later
     
@@ -163,7 +163,9 @@ class PacketThread(threading.Thread):
 				if type(packet) is RegisterPacket:
 					1
 				elif type(packet) is LoadPacket:
+					print "Added load packet to process queue with id " + str(packet.id) + " index: " + str(packet.index)
 					process_queue.append(ProcessRequest(packet.id, packet.index))
+
 
 
 class ProcessThread(threading.Thread):
@@ -194,16 +196,23 @@ class ReceiveThread(threading.Thread):
 		threading.Thread.__init__(self)
 		self.socket = socket
 	def run(self):
-		headerBytes = self.socket.recv(8)
-		header = Header().unpack(headerBytes)
-		
-		packetBytes = self.socket.recv(header.size)
-		if header.type == PacketType.Register:
-			packet_queue.append(RegisterPacket().unpack(packetBytes))
-		elif header.type == PacketType.Load:
-			packet_queue.append(LoadPacket().unpack(packetBytes))
-		else:
-			packet_queue.append(Packet().unpack(packetBytes))
+		while alive:
+			headerBytes = self.socket.recv(8)
+			header = Header()
+			header.unpack(headerBytes)
+			
+			packetBytes = self.socket.recv(header.size)
+			if header.type == PacketType.Register:
+				packet = RegisterPacket()
+				packet.unpack(packetBytes)
+				packet_queue.append(packet)
+			elif header.type == PacketType.Load:
+				packet = LoadPacket()
+				packet.unpack(packetBytes)
+				packet_queue.append(packet)
+
+			packet_semaphore.release()
+
 
 peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
@@ -215,8 +224,8 @@ try:
 	registerPacket.id = 0
 
 	initialHeader.size = len(str(registerPacket.pack()))
-	peer_socket.send(initialHeader.pack())
-	peer_socket.send(registerPacket.pack())
+	peer_socket.sendall(initialHeader.pack())
+	peer_socket.sendall(registerPacket.pack())
 
 except Exception as e:
 	print "Error occurred while connecting " + str(e)

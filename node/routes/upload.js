@@ -11,13 +11,13 @@ router.post('/', multipartMiddleware, function(req, res){
 	var body = req.body;
 	var milliseconds = (new Date).getTime();
 	console.log(milliseconds);
-  		fs.createReadStream(files.files.path).pipe(fs.createWriteStream('../distributed/upload/' + milliseconds +'.mp4'));
+  		fs.createReadStream(files.files.path).pipe(fs.createWriteStream('../distributed/uploading/' + milliseconds +'.mp4'));
 		fs.unlink(files.files.path, function(err){
 			if (err) throw err;
 		});
 		
 
-	return res.render('streaming', {id: milliseconds, address: "127.0.0.1", port: "27015"});
+	return res.render('streaming', {id: milliseconds, address: "127.0.0.1", port: "6654"});
 	
 }); 
 	
