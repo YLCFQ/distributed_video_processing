@@ -1,14 +1,17 @@
 import socket
 import threading
-import os
+import os, inspect
 import time
+import subprocess
 from collections import deque
 from packet import Packet, PacketType, Header, RegisterPacket, LoadPacket
 
 import glob
-import datetime
+from datetime import datetime
 import dlib
 import cv2
+import sys
+import numpy as np
 
 
 packet_queue = deque()
@@ -22,35 +25,48 @@ detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor('./shape_predictor_68_face_landmarks.dat') #directory for shape_predictor_68_face_landmarks.dat
 
 #resize the image 
-image_ratio = 0.8
+image_ratio = 0.6
 
-def ScanFrames (input_path, output_path):
-	g = glob.glob(input_path[:input_path.rfind(".")] + "*.png")
+def in_rect(r, p):
+    return p[0] > r[0] and p[1] > r[1] and p[0] < r[2] and p[1] < r[3] 
+
+def ScanFrames (input_path, output_path, index):
+	g = glob.glob(input_path + "*.bmp")
+	print "ScanFrames starts!!!!"
 	for i, fn in enumerate(g):
 		print ("Handling frame " + str(i) + ":")
 		tstart = datetime.now()
 		HandleFrame(fn, output_path)
 		tend = datetime.now()
 		print("Finished handling frame " + str(tend - tstart))
-	ffmpegBuild = subprocess.Popen(["ffmpeg", "-i", output_path, output_path+"final.mp4"], stdout=outstream, stderr=subprocess.STDOUT)# Run FFMPEG to rebake the video
+	outstream = open(os.devnull, 'w')
+	midPath = input_path + "%d.bmp"
+	start = datetime.now()
+	print (midPath)
+	print ("building begin!!")
+	ffmpegBuild = subprocess.Popen(["ffmpeg", "-i", midPath, output_path + str(index) + "_final.mp4"], stdout=outstream, stderr=subprocess.STDOUT)# Run FFMPEG to rebake the video
 	ffmpegBuild.wait()
+	end = datetime.now()
+	print ("building completed in :" + str(end-start))
+	print "ScanFrames ends!!"
 	cleanUpImages(input_path, output_path)
 
-def HandleFrame(input_path, output_path):
-	img = cv2.imread(input_path, 1)
+def HandleFrame(fn, output_path):
 
+	print "HandleFrame starts!!!!"
+	img = cv2.imread(fn, 1)
 	ptsList, breadthList = detectFrame(img)
-	markFrame(img, ptsList, breadthList)
-	pupilData = getPupilData(input_path) #IPC to get pupil data
+	markFrame(fn, img, ptsList, breadthList)
+	pupilData = getPupilData(fn) #IPC to get pupil data
 	markPupil(img, pupilData, breadthList)
 
-	cv2.imwrite(output_path, img)
-
+	cv2.imwrite(fn, img)
+	print "HandleFrame ends!!!!!"
 
 
 def detectFrame(img):
 	global detector, predictor, image_ratio
-
+	print "detectFrame starts!!!!"
 	image = cv2.resize(img, (0,0), fx=image_ratio, fy=image_ratio)
 	gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 	detections = detector(gray, 1)# type(detections) == dlib.rectangles
@@ -69,19 +85,17 @@ def detectFrame(img):
                 #pts.append((p.x, p.y))
 				pts.append((p.x/image_ratio, p.y/image_ratio))
 		ptsList.append(pts)
-	
-	breadthList.append(np.sqrt(d.width() ** 2 + d.height() ** 2)) #this is a list of magnitudes of the hypotenuse (so called breadth) of the face detection
-	tend = datetime.now()
-	print("\t\t" + str(tend - tstart))
-
+		breadthList.append(np.sqrt(d.width() ** 2 + d.height() ** 2)) #this is a list of magnitudes of the hypotenuse (so called breadth) of the face detection
+		tend = datetime.now()
+		print("\t\t" + str(tend - tstart))
+	print ("detectFrame ends!!!!")
 	return ptsList, breadthList
 
-def markFrame(img, ptsList, breadthList):
-	if raw_input("Overwrite " + fn + " Y/N?") == "Y":
+def markFrame(fn, img, ptsList, breadthList):
+	#if raw_input("Overwrite " + fn + " Y/N?") == "Y":
 		print("\t\tBeginning Delauney drawing algorithm")
 		tstart = datetime.now()
 	
-		
 		i = 0
 		for pts in ptsList:
 			bounds = (0, 0, img.shape[1], img.shape[0])
@@ -98,11 +112,11 @@ def markFrame(img, ptsList, breadthList):
 					cv2.line(img, pt1, pt2, (0, 255, 0), int(breadthList[i] * 1/100), 8, 0) #tried using cv2.CV_AA
 					cv2.line(img, pt2, pt3, (0, 255, 0), int(breadthList[i] * 1/100), 8, 0)
 					cv2.line(img, pt3, pt1, (0, 255, 0), int(breadthList[i] * 1/100), 8, 0)
-			i+=1 #something weird may happen
+		i+=1 #something weird may happen
 		tend = datetime.now()
 		print("\t\t" + str(tend - tstart))
-	else:
-		print("Permission denied. (mark Frame)")
+	#else:
+	#	print("Permission denied. (mark Frame)")
 
 def getPupilData(input_path):
 	print("\t\tsubprocessing pupil data")
@@ -129,24 +143,24 @@ def getPupilData(input_path):
 
 def markPupil(img, pupilData, breadthList):
 	print("\t\tDrawing pupils to image.")
-	if raw_input("Overwrite " + fn + " Y/N?") == "Y":
-		tstart = datetime.now()
-		i = 0
-		for pupil in pupilData:
-			if pupil != (-1, -1):
-				pupilArray = np.array(pupil, np.int32).reshape((-1, 1, 2))
-				cv2.polylines(img, pupilArray, True, (0, 0, 255/(i+1)), int(breadthList[i/2] * 3/100))
-				cv2.polylines(img, pupilArray, True, (255/(i+1), 0, 0), int(breadthList[i/2] * 1/100))
+	#if raw_input("Overwrite " + fn + " Y/N?") == "Y":
+	tstart = datetime.now()
+	i = 0
+	for pupil in pupilData:
+		if pupil != (-1, -1):
+			pupilArray = np.array(pupil, np.int32).reshape((-1, 1, 2))
+			cv2.polylines(img, pupilArray, True, (0, 0, 255/(i+1)), int(breadthList[i/2] * 3/100))
+			cv2.polylines(img, pupilArray, True, (255/(i+1), 0, 0), int(breadthList[i/2] * 1/100))
 			i += 1
-		tend = datetime.now()
-		print("\t\t" + str(tend - tstart))
-	else:
-		print("Permission denied. (mark Pupil")
+	tend = datetime.now()
+	print("\t\t" + str(tend - tstart))
+	#else:
+		#print("Permission denied. (mark Pupil")
 
 def cleanUpImages(input_path, output_path):
-	for f in glob.glob(input_path[:input_path.rfind(".")] + "*.png"):
+	for f in glob.glob(input_path[:input_path.rfind(".")] + "*.bmp"):
 		os.remove(f)
-	for f in glob.glob(output_path[:output_path.rfind(".")] + "*.png"):
+	for f in glob.glob(output_path[:output_path.rfind(".")] + "*.bmp"):
 		os.remove(f)
 
 
@@ -155,6 +169,7 @@ class PacketThread(threading.Thread):
 	def __init__(self):
 		threading.Thread.__init__(self)
 	def run(self):
+		global process_semaphore, packet_semaphore, process_queue, packet_queue
 		while alive:
 			packet_semaphore.acquire()
 			if packet_queue:
@@ -164,7 +179,8 @@ class PacketThread(threading.Thread):
 					1
 				elif type(packet) is LoadPacket:
 					print "Added load packet to process queue with id " + str(packet.id) + " index: " + str(packet.index)
-					process_queue.append(ProcessRequest(packet.id, packet.index))
+					process_queue.append(ProcessRequest(packet.index, packet.id))
+					process_semaphore.release()
 
 
 
@@ -174,15 +190,22 @@ class ProcessThread(threading.Thread):
 		self.threadID = threadID
 		print "Thread #" + str(threadID) + " has started!"
 	def run(self):
+		global process_semaphore, process_queue
 		while alive:
+			print "Waiting for process semaphore.."
 			process_semaphore.acquire()
+			print "Acquired process semaphore"
 			if process_queue:
+				print "Found something in process_queue"
 				request = process_queue.popleft()
-				input_path = '../received/' + str(request.id) + "_" + str(packet.index)
-				output_path = '../completed/' + str(request.id)
+				input_path = './received_images/' + str(request.id) + "/" + str(request.index) +"/"
+				output_path = './processing/'+ str(request.id) + '/completed' + "/"
+				print ("the id is : " + str(request.id) + "the index is : " + str(request.index))
+				print (input_path)
+				print (output_path)
 				if not os.path.exists(output_path):
 					os.makedirs(output_path)
-				ScanFrames(input_path, output_path)
+				ScanFrames(input_path, output_path, request.index)
 
 
 class ProcessRequest:
@@ -232,3 +255,5 @@ except Exception as e:
 	exit(0)
 ReceiveThread(peer_socket).start()
 PacketThread().start()
+ProcessThread(0).start()
+

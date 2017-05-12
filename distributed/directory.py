@@ -65,8 +65,8 @@ class ProcessThread(threading.Thread):
 			if process_queue:
 				request = process_queue.popleft()
 				movie_file = './processing/' + str(request.id) + '/movie.mp4'
-				split_directory = './processing/' + str(request.id) + '/' + str(request.index) + '/' + "%d.png"
-				midPath = split_directory[:split_directory.rfind(".")] + "%d.png"
+				ffmpeg_out = './processing/' + str(request.id) + '/' + str(request.index) + '/' + "%d.bmp"
+				split_directory = './processing/' + str(request.id) + '/' + str(request.index) + '/'
 				#1-24.png
 
 				offset = request.offset #-ss flag for ffmpeg
@@ -75,7 +75,7 @@ class ProcessThread(threading.Thread):
 
 
 				outstream = open(os.devnull, 'w')
-				ffmpegBreak = subprocess.Popen(["ffmpeg", "-ss", offset] + ["-t", duration] + ["-i", movie_file, split_directory], stdout=outstream, stderr=subprocess.STDOUT)
+				ffmpegBreak = subprocess.Popen(["ffmpeg", "-ss", offset] + ["-t", duration] + ["-i", movie_file, ffmpeg_out], stdout=outstream, stderr=subprocess.STDOUT)
 				ffmpegBreak.wait()
 
 				print (request.index)
@@ -169,23 +169,30 @@ def process(id):
 	copyfile('./uploading/' + str(id) + '.mp4', movie_file)
 
 	start_time = "00:00:00"
-	duration = "00:00:05"
+	duration = "00:00:00"
 	duration_count = 5;
 	start = datetime.datetime.now()
+
 	total_time = determine_split(movie_file)
+	default_time = datetime.datetime.strptime("00:00:00", '%H:%M:%S')
+	convert_time =  default_time + datetime.timedelta(0,total_time/duration_count)
+	duration = convert_time.strftime('%H:%M:%S')
+	print ("total_time is : " + str(total_time))
+	print("duration is : " + str(duration))
+
 	print ('\t\t' + " processing start");
-	for x in range(0, determine_split(movie_file)/duration_count):
+	for x in range(0, total_time/duration_count):
 		os.mkdir('./processing/' + str(id) + '/' + str(x))
 		process_queue.append(ProcessRequest(start_time, duration, x, id))
 		process_semaphore.release() #Means starting at offset x to 1
 		temp_time = datetime.datetime.strptime(start_time, '%H:%M:%S')
-		temp_time = temp_time + datetime.timedelta(0,1)
+		temp_time = temp_time + datetime.timedelta(0, total_time/duration_count)
 		start_time = temp_time.strftime('%H:%M:%S')
 
 		#Need to format 00:01 from x so if x is 61 then it is 1:01
 		#Make folders from 0-4 if determine_split is given from it
 	
-	while (not os.path.exists('./processing/' + str(id) + '/' + str(23) + '/1.png')):
+	while (not os.path.exists('./processing/' + str(id) + '/' + str(23) + '/1.bmp')):
 		end = datetime.datetime.now()
 	print ('\t\t' + " splitting finished at: " + str(end - start))
 
@@ -203,11 +210,17 @@ def send_available(id, index, path):
 	#paramiko
 	#send all files in path
 	print "Walking path " + path
+	if not os.path.exists('./received_images/' + str(id)):
+		os.mkdir('./received_images/' + str(id))
+	if not os.path.exists('./received_images/' + str(id) + '/' + str(index)):
+		os.mkdir('./received_images/' + str(id) + '/' + str(index))
 	for root, directories, filenames in os.walk(path):
 		for filename in filenames:
 			#debugging purposes
-			#14949494940920_0_1.png
-			os.rename('./processing/' + str(id) + '/' + str(index) + '/' + filename, './received_images/' + str(index) +'/' + filename)
+			#14949494940920_0_1.bmp
+			#print("A: " + './processing/' + str(id) + '/' + str(index) + '/' + filename)
+			#print("B: " + './received_images/' + str(index) +'/' + filename)
+			os.rename('./processing/' + str(id) + '/' + str(index) + '/' + filename, './received_images/' + str(id) + '/' + str(index) + '/' +filename)
 	loadHeader = Header()
 	loadHeader.type = PacketType.Load
 
@@ -238,8 +251,8 @@ print "Starting Process Threads..."
 for x in range(0, 1):
 	ProcessThread(x).start()
 
-time.sleep(30)
-process("1494140639824")
+time.sleep(20)
+process("1494544527034")
 
 #factory = WebSocketServerFactory()
 #factory.protocol = MyServerProtocol
