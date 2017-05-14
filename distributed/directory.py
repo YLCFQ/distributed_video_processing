@@ -201,6 +201,8 @@ class ReceiveThread(threading.Thread):
 			print "Packet has been added to packet queue"
 		peer_servers.remove(self.socket)
 		peer_paramiko.pop(self.socket)
+		print "There are now " + str(len(peer_servers)) + " connections"
+		print "There are now " + str(len(peer_paramiko)) + " paramiko connections"
 def determine_split(path, chunk_duration):
 	#Given a path determine how many splits are there. For example 0:30 with 1 second split is 30 splits
 	#Ffprobe
