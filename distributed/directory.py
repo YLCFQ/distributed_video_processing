@@ -57,7 +57,7 @@ class MyServerProtocol(WebSocketServerProtocol):
 	def onMessage(self, payload, isBinary):
 		print "ID received was " + payload
 		self.factory.addId(self, payload)
-		self.factory.sendMessageWebSocket(payload, "You are ready to go, we've revceived your ID: " + payload)
+		self.factory.sendMessageWebSocket(payload, determine_split())
 	def onClose(self, wasClean, code, reason):
 		1
 	#def onMessage(self, payload, isBinary):
@@ -124,17 +124,18 @@ class PacketThread(threading.Thread):
 	def __init__(self):
 		threading.Thread.__init__(self)
 	def run(self):
-		global alive, packet_queue, packet_semaphore
+		global alive, packet_queue, packet_semaphore, factory
 		while alive:
 			packet_semaphore.acquire()
 			if packet_queue:
 				packet = packet_queue.popleft()
 
-				if type(packet) is RegisterPacket:
+				if type(packet) is RegisterPacket.value:
 					#Handle register pqacket here
 					print "Handling register packet"
-				elif type(packet) is LoadPacket:
-					1
+				elif type(packet) is LoadPacket.value:
+					os.rename('/home/ubuntu/dvp/distributed/processing/' + str(packet.id) + '/completed/' + str(packet.index) + 'mp4', 'usr/share/nginx/html/static/' + str(packet.id) + '_' + str(packet.index) + '.mp4')
+					factory.sendMessageWebSocket(str(packet.id), 'http://54.193.119.113/static/' + str(packet.id) + '_' + str(packet.index) + '.mp4')
 
 
 def add_file(path):
@@ -168,15 +169,22 @@ class ReceiveThread(threading.Thread):
 	def __init__(self, socket):
 		threading.Thread.__init__(self)
 		self.socket = socket
+		self.alive = True
 	def run(self):
-		global alive, packet_queue, packet_semaphore
-		while alive:
+		global packet_queue, packet_semaphore, peer_paramiko, peer_servers
+
+		while self.alive:
 			headerBytes = self.socket.recv(8)
+			if headerBytes == '':
+				self.alive = False
+
 			header = Header()
 			header.unpack(headerBytes)
 			print "Received a packet!"
 
 			packetBytes = self.socket.recv(header.size)
+			if packetBytes == '':
+				self.alive = False
 
 			if header.type == PacketType.Register:
 				print "Found a register packet!"
@@ -191,6 +199,8 @@ class ReceiveThread(threading.Thread):
 			
 			packet_semaphore.release()
 			print "Packet has been added to packet queue"
+		peer_servers.remove(self.socket)
+		peer_paramiko.remove(self.socket)
 def determine_split(path, chunk_duration):
 	#Given a path determine how many splits are there. For example 0:30 with 1 second split is 30 splits
 	#Ffprobe

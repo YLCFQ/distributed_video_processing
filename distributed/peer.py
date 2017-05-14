@@ -245,15 +245,20 @@ class ReceiveThread(threading.Thread):
 	def __init__(self, socket):
 		threading.Thread.__init__(self)
 		self.socket = socket
+		self.alive = True
 	def run(self):
 		global packet_queue, packet_semaphore
-		while alive:
+		while self.alive:
 			headerBytes = self.socket.recv(8)
+			if headerBytes == '':
+				self.alive = False
 			print "Received header"
 			header = Header()
 			header.unpack(headerBytes)
 			
 			packetBytes = self.socket.recv(header.size)
+			if packetBytes == '':
+				self.alive = False
 			print "Rceived Packet"
 			if header.type == PacketType.Register.value:
 				packet = RegisterPacket()
@@ -268,29 +273,58 @@ class ReceiveThread(threading.Thread):
 
 			packet_semaphore.release()
 
+		 #Wait 5 seconds before reconnecting again
+		hasNotEstablished = True
 
-peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-try:
-	peer_socket.connect(('54.193.119.113', 27015))
-	initialHeader = Header()
-	initialHeader.type = PacketType.Register
+		while hasNotEstablished:
+			time.sleep(5)
+			peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			try:
+				peer_socket.connect(('54.193.119.113', 27015))
+				initialHeader = Header()
+				initialHeader.type = PacketType.Register
 
-	registerPacket = RegisterPacket()
-	registerPacket.id = 0
+				registerPacket = RegisterPacket()
+				registerPacket.id = 0
 
-	initialHeader.size = len(str(registerPacket.pack()))
-	print initialHeader.size
-	print len(str(registerPacket.pack()))
-	print len(str(initialHeader.pack()))
+				initialHeader.size = len(str(registerPacket.pack()))
+				print initialHeader.size
+				print len(str(registerPacket.pack()))
+				print len(str(initialHeader.pack()))
 
 
-	peer_socket.sendall(initialHeader.pack())
-	peer_socket.sendall(registerPacket.pack())
+				peer_socket.sendall(initialHeader.pack())
+				peer_socket.sendall(registerPacket.pack())
+				ReceiveThread(peer_socket).start()
+				hasNotEstablished = False
+			except Exception as e:
+				print "Error occurred while connecting " + str(e)
 
-except Exception as e:
-	print "Error occurred while connecting " + str(e)
-	exit(0)
-ReceiveThread(peer_socket).start()
+hasNotEstablished = True
+
+while hasNotEstablished:
+	peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	try:
+		peer_socket.connect(('54.193.119.113', 27015))
+		initialHeader = Header()
+		initialHeader.type = PacketType.Register
+
+		registerPacket = RegisterPacket()
+		registerPacket.id = 0
+
+		initialHeader.size = len(str(registerPacket.pack()))
+		print initialHeader.size
+		print len(str(registerPacket.pack()))
+		print len(str(initialHeader.pack()))
+
+
+		peer_socket.sendall(initialHeader.pack())
+		peer_socket.sendall(registerPacket.pack())
+		ReceiveThread(peer_socket).start()
+		hasNotEstablished = False
+	except Exception as e:
+		print "Error occurred while connecting " + str(e)
+
 PacketThread().start()
 ProcessThread(0).start()
 

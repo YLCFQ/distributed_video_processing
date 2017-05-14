@@ -3,56 +3,74 @@
 <title>Streaming</title>
 <script type="text/javascript">
 
-var id = <%- JSON.stringify(id) %>;
-var address = <%- JSON.stringify(address) %>;
-var port = <%- JSON.stringify(port) %>;
+var id = "130000";
+var address = '54.193.119.113';
+var port = '6654';
 
 var stream = [];
 
 
+
+var videoCount = 0;
 var firstMessage = true;
 
 var streaming = new WebSocket('ws://' + address + ':' + port);
 
 streaming.onopen = function(){
-	streaming.send(id); //We need to send the id to the directory server
+	streaming.send(id);
 }
-/*
+streaming.onmessage = function(e){
+	console.log("Received message");
+	console.log(e.data);
+}
+console.log("Ready to go!");
+function parseChunk(name){
+	return name.replace(id + "_", "").replace(".mov", "");
+}
+
 streaming.onmessage = function(e){
 	if (firstMessage){
+		console.log("Making bucket sort");
 		var count = Integer.parseInt(e.data);
-		for(int i=0; i<count; i++){
+		for(var i=0; i<count + 1; i++){
 			stream.append("None");
 		}
+		console.log("Bucket sort complete");
 		firstMessage = false;
 	}else{
-		var video_id = e.data;
-		video_id = video_id.replace(id + "_", ""); //112313131231_0.mp4 is now 0.mp4
-		video_id = video_id.replace(".mp4", ""); //0.mp4 is now 0
-		stream[video_id] = e.data; //ghetto bucket sort
+		var video_id = parseChunk(e.data);
+		stream[video_id] = e.data;
+		nextVideo(); //call this no matter what
 	}
 }
 
 
-video_count =1;
-videoPlayer = document.getElementById("ss");        
-video=document.getElementById("myVideo");
 
-function run(){
-    video_count++;
-    if (video_count == 4) video_count = 1;
-    videoPlayer.setAttribute("src","video/video"+video_count+".mp4");       
-    video.play();
-
+function nextVideo(){
+	videoPlayer = document.getElementById("myVideo");
+	if(videoPlayer.currentTime < videoPlayer.duration)
+		return;
+	if(stream[videoCount] != "None" && videoCount < stream.length){
+		console.log("Playing video " + stream[videoCount]);
+		var source = document.createElement('source');
+		videoPlayer.setAttribute('src',stream[videoCount]);
+		videoPlayer.load();
+		videoPlayer.play();
+		videoCount++;
+	}
+	
 }
-*/
+
+setTimeout(nextVideo, 100);
+
+
 
 </script>
 </head>
 </head>
 <body>
-  <video id="myVideo" height="400" width="400" autoplay onended="run();">   
-        <source id="ss"  src="video/video1.mp4" type='video/mp4'>
+  <video id="myVideo" align="center" height="400" width="600" autoplay onended="nextVideo();">   
+        <source id="ss"  src="" type='video/mp4'>
     </video>
 </body>
 </html>
