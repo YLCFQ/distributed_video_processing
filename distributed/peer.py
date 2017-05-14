@@ -45,8 +45,8 @@ client.connect(hostname = dire_address, username = 'ubuntu', pkey = pem_key)
 def in_rect(r, p):
     return p[0] > r[0] and p[1] > r[1] and p[0] < r[2] and p[1] < r[3] 
 
-def ScanFrames (input_path, output_path, index):
-	global image_format, client
+def ScanFrames (input_path, output_path, index, id):
+	global image_format, client, peer_socket
 	sftp = client.open_sftp()
 	g = glob.glob(input_path + "*.png")
 	print "ScanFrames starts!!!!"
@@ -71,6 +71,16 @@ def ScanFrames (input_path, output_path, index):
 	end = datetime.now()
 	print ("building completed in :" + str(end-start))
 	print "ScanFrames ends!!"
+	loadHeader = Header()
+	loadHeader.type = PacketType.Load
+	loadPacket = LoadPacket()
+	loadPacket.id = id
+	loadPacket.index = index
+	loadHeader.size = len(loadPacket.pack())
+	
+	peer_socket.sendall(loadHeader.pack())
+	peer_socket.sendall(loadPacket.pack())	
+
 	cleanUpImages(input_path, output_path)
 
 def HandleFrame(fn, output_path):
@@ -232,7 +242,7 @@ class ProcessThread(threading.Thread):
 				print (output_path)
 				if not os.path.exists(output_path):
 					os.makedirs(output_path)
-				ScanFrames(input_path, output_path, request.index)
+				ScanFrames(input_path, output_path, request.index, request.id)
 
 
 class ProcessRequest:
@@ -247,7 +257,7 @@ class ReceiveThread(threading.Thread):
 		self.socket = socket
 		self.alive = True
 	def run(self):
-		global packet_queue, packet_semaphore
+		global packet_queue, packet_semaphore, peer_socket
 		while self.alive:
 			headerBytes = self.socket.recv(8)
 			if headerBytes == '':
