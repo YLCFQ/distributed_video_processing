@@ -14,7 +14,7 @@ from autobahn.twisted.websocket import WebSocketServerProtocol
 from autobahn.twisted.websocket import WebSocketServerFactory
 from shutil import copyfile
 
-
+import functools
 import paramiko
 
 alive = False
@@ -53,12 +53,11 @@ class MyServerProtocol(WebSocketServerProtocol):
 	#def onClose(self, wasClean, code, reason):
 	#	1
 	def onConnect(self, request):
-		id = request.protocols[0]
 		print "A client has connected!"
 	def onMessage(self, payload, isBinary):
 		print "ID received was " + payload
 		self.factory.addId(self, payload)
-		self.factory.sendMessageWebSocket(payload, "Hello")
+		self.factory.sendMessageWebSocket(payload, "You are ready to go, we've revceived your ID: " + payload)
 	def onClose(self, wasClean, code, reason):
 		1
 	#def onMessage(self, payload, isBinary):
@@ -156,7 +155,7 @@ class AcceptThread(threading.Thread):
 
 			client = paramiko.SSHClient()
 			client.set_missing_host_key_policy(AllowAnythingPolicy())
-			client.connect(address[0], username = 'chenyulong', password = 'xiuzhen', key_filename = pem_key)
+			client.connect(address[0], username = 'ubuntu', pkey = pem_key)
 			peer_paramiko[new_socket] = client
 			print (peer_paramiko)
 
@@ -197,7 +196,7 @@ def determine_split(path, chunk_duration):
 	#Ffprobe
 	video_length = subprocess.check_output(['ffprobe', '-i', path, '-show_entries', 'format=duration', '-v', 'quiet', '-of', 'csv=%s' % ("p=0")])
 
-	chunks = math.ceil(float(video_length)) / chunk_duration
+	chunks = math.floor(float(video_length)) / chunk_duration
 	print ("split movie into: " + str(chunks) + " chunks")
 	return  int(math.ceil(chunks))
 
@@ -251,20 +250,22 @@ def send_available(id, index, path):
 
 	if peer_count >= len(peer_servers):
 		peer_count = 0
-
 	client = peer_paramiko.get(peer_servers[peer_count])
 
 	dest_path = '/home/ubuntu/dvp/distributed/received_images/' + str(id) + '/' + str(index) + '/'
-
-	stdin, stdout, stderr = client.exec_command('mkdir -p' + dest_path)
+	print ('dest: ' + dest_path)
+	stdin, stdout, stderr = client.exec_command('mkdir -p ' + dest_path)
+	stdout=stdout.readlines()
+	print(stdout)
 	stdin.close()
 	sftp = client.open_sftp()
-
-	#sftp.chdir('/Users/chenyulong/Documents/dvp/distributed/processing/'  + str(id) + '/' + str(index) + '/')
+	print('/home/ubuntu/dvp/distributed/processing/'  + str(id) + '/' + str(index) + '/')
+	start_path = '/home/ubuntu/dvp/distributed/processing/'  + str(id) + '/' + str(index) + '/'
 	for root, directories, filenames in os.walk(path):
 		for filename in filenames:
 			callback_for_filename = functools.partial(my_callback, filename)
-			sftp.put(filename, dest_path + filename, callback=callback_for_filename)
+			print("the filename is: " + start_path +  str(filename))
+			sftp.put(start_path+filename, dest_path + filename, callback=callback_for_filename)
 	#client.close()
 
 	#paramiko
@@ -314,9 +315,10 @@ print "Starting Process Threads..."
 for x in range(0, 1):
 	ProcessThread(x).start()
 
+time.sleep(10)
+process("1494544527034")
+#factory = MyServerFactory(u"ws://0.0.0.0:6654")
+#factory.protocol = MyServerProtocol
 
-factory = MyServerFactory(u"ws://0.0.0.0:6654")
-factory.protocol = MyServerProtocol
-
-reactor.listenTCP(6654, factory)
-reactor.run()
+#reactor.listenTCP(6654, factory)
+#reactor.run()

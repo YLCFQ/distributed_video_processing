@@ -33,20 +33,21 @@ predictor = dlib.shape_predictor('./shape_predictor_68_face_landmarks.dat') #dir
 image_ratio = 0.6
 
 #ip address of main directory
-dire_address =  "127.0.0.1"
+dire_address =  "54.193.119.113"
 
 #paramiko
 pem_key = paramiko.RSAKey.from_private_key_file("/home/ubuntu/key/Distributed.pem")
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-client.connect(hostname = dire_address, username = 'ubuntu', key_filename = pem_key)	
-sftp = client.open_sftp()
+client.connect(hostname = dire_address, username = 'ubuntu', pkey = pem_key)	
+#sftp = client.open_sftp()
 
 def in_rect(r, p):
     return p[0] > r[0] and p[1] > r[1] and p[0] < r[2] and p[1] < r[3] 
 
 def ScanFrames (input_path, output_path, index):
-	global image_format, sftp
+	global image_format, client
+	sftp = client.open_sftp()
 	g = glob.glob(input_path + "*.png")
 	print "ScanFrames starts!!!!"
 	for i, fn in enumerate(g):
@@ -64,7 +65,7 @@ def ScanFrames (input_path, output_path, index):
 	ffmpegBuild.wait()
 
 	#paramiko
-	stfp.put(output_path + str(index) + "_final.mp4", output_path + str(index) + "_final.mp4")
+	sftp.put(output_path + str(index) + "_final.mp4", output_path + str(index) + "_final.mp4")
 
 
 	end = datetime.now()
@@ -194,9 +195,12 @@ class PacketThread(threading.Thread):
 	def run(self):
 		global process_semaphore, packet_semaphore, process_queue, packet_queue
 		while alive:
+			print "Waiting for a packet.."
 			packet_semaphore.acquire()
+			print "Received a packet!"
 			if packet_queue:
 				packet = packet_queue.popleft()
+				print "Received a packet of type " + str(type(packet))
 				#Public infomraiton
 				if type(packet) is RegisterPacket:
 					1
@@ -242,27 +246,32 @@ class ReceiveThread(threading.Thread):
 		threading.Thread.__init__(self)
 		self.socket = socket
 	def run(self):
+		global packet_queue, packet_semaphore
 		while alive:
 			headerBytes = self.socket.recv(8)
+			print "Received header"
 			header = Header()
 			header.unpack(headerBytes)
 			
 			packetBytes = self.socket.recv(header.size)
-			if header.type == PacketType.Register:
+			print "Rceived Packet"
+			if header.type == PacketType.Register.value:
 				packet = RegisterPacket()
 				packet.unpack(packetBytes)
 				packet_queue.append(packet)
-			elif header.type == PacketType.Load:
+			elif header.type == PacketType.Load.value:
+				print "Received a load packet, adding to packet queue"
 				packet = LoadPacket()
 				packet.unpack(packetBytes)
 				packet_queue.append(packet)
+				print len(packet_queue)
 
 			packet_semaphore.release()
 
 
 peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
-	peer_socket.connect(('0.0.0.0', 27015))
+	peer_socket.connect(('54.193.119.113', 27015))
 	initialHeader = Header()
 	initialHeader.type = PacketType.Register
 
