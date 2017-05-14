@@ -19,6 +19,7 @@ process_queue = deque()
 packet_semaphore = threading.Semaphore(0)
 process_semaphore = threading.Semaphore(0)
 alive = True
+image_format = "png"
 
 #dlib library
 detector = dlib.get_frontal_face_detector()
@@ -31,7 +32,8 @@ def in_rect(r, p):
     return p[0] > r[0] and p[1] > r[1] and p[0] < r[2] and p[1] < r[3] 
 
 def ScanFrames (input_path, output_path, index):
-	g = glob.glob(input_path + "*.bmp")
+	global image_format
+	g = glob.glob(input_path + "*.png")
 	print "ScanFrames starts!!!!"
 	for i, fn in enumerate(g):
 		print ("Handling frame " + str(i) + ":")
@@ -40,7 +42,7 @@ def ScanFrames (input_path, output_path, index):
 		tend = datetime.now()
 		print("Finished handling frame " + str(tend - tstart))
 	outstream = open(os.devnull, 'w')
-	midPath = input_path + "%d.bmp"
+	midPath = input_path + "%d.png"
 	start = datetime.now()
 	print (midPath)
 	print ("building begin!!")
@@ -158,9 +160,10 @@ def markPupil(img, pupilData, breadthList):
 		#print("Permission denied. (mark Pupil")
 
 def cleanUpImages(input_path, output_path):
-	for f in glob.glob(input_path[:input_path.rfind(".")] + "*.bmp"):
+	global image_format
+	for f in glob.glob(input_path[:input_path.rfind(".")] + "*.png"):
 		os.remove(f)
-	for f in glob.glob(output_path[:output_path.rfind(".")] + "*.bmp"):
+	for f in glob.glob(output_path[:output_path.rfind(".")] + "*.png"):
 		os.remove(f)
 
 
@@ -247,6 +250,9 @@ try:
 	registerPacket.id = 0
 
 	initialHeader.size = len(str(registerPacket.pack()))
+	print initialHeader.size
+	print len(str(registerPacket.pack()))
+	print len(str(initialHeader.pack()))
 	peer_socket.sendall(initialHeader.pack())
 	peer_socket.sendall(registerPacket.pack())
 

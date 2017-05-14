@@ -24,7 +24,7 @@ class Header:
 
 	def pack(self):
 		try:
-			return struct.pack("i", self.type) + struct.pack("i", self.size)
+			return struct.pack("i", self.type.value) + struct.pack("i", self.size)
 		except Exception as e:
 			print "Error packing " + str(e)
 			return None
