@@ -200,7 +200,7 @@ class ReceiveThread(threading.Thread):
 			packet_semaphore.release()
 			print "Packet has been added to packet queue"
 		peer_servers.remove(self.socket)
-		peer_paramiko.remove(self.socket)
+		peer_paramiko.pop(self.socket)
 def determine_split(path, chunk_duration):
 	#Given a path determine how many splits are there. For example 0:30 with 1 second split is 30 splits
 	#Ffprobe
