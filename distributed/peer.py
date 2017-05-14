@@ -278,6 +278,7 @@ class ReceiveThread(threading.Thread):
 
 		while hasNotEstablished:
 			time.sleep(5)
+			print "Attempting to reconnect"
 			peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			try:
 				peer_socket.connect(('54.193.119.113', 27015))
