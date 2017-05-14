@@ -47,17 +47,19 @@ def my_callback(filename, bytes_so_far, bytes_total):
 
 #Websocket server
 #WebSocketServerProtocol)
-class MyServerProtocol():
+class MyServerProtocol(WebSocketServerProtocol):
 	#def onConnect(self, request):
 	#	print "A client has connected!"
 	#def onClose(self, wasClean, code, reason):
 	#	1
-	def dataReceived(self,data):
-		1
-	def makeConnection(self, transport):
-		1
+	def onConnect(self, request):
+		id = request.protocols[0]
 		print "A client has connected!"
-	def connectionLost(self, reason):
+	def onMessage(self, payload, isBinary):
+		print "ID received was " + payload
+		self.factory.addId(self, payload)
+		self.factory.sendMessageWebSocket(payload, "Hello")
+	def onClose(self, wasClean, code, reason):
 		1
 	#def onMessage(self, payload, isBinary):
 		#Receive 0 then look for 0.mp4 to process
@@ -66,6 +68,21 @@ class MyServerProtocol():
 	#		process(id)
 	#	except Exception as e:
 	#		print "Error occurred when receiving a message from client " + str(e)
+
+class MyServerFactory(WebSocketServerFactory):
+	def __init__(self, *args, **kwargs):
+		super(MyServerFactory, self).__init__(*args, **kwargs)
+		self.clients = {}
+	def addId(self, client, id):
+		self.clients[id]  = client
+		print "Added client to ID!"
+	def sendMessageWebSocket(self, id, payload):
+		print "Attempting to send client message"
+		c = self.clients[id]
+		if not c is None:
+			print "Sending message"
+			c.sendMessage(payload, False)
+	
 
 class ProcessRequest:
 	def __init__(self, offset, duration, index, id):
@@ -297,11 +314,9 @@ print "Starting Process Threads..."
 for x in range(0, 1):
 	ProcessThread(x).start()
 
-time.sleep(10)
-process("1494544527034")
 
-#factory = WebSocketServerFactory()
-#factory.protocol = MyServerProtocol
+factory = MyServerFactory(u"ws://0.0.0.0:6654")
+factory.protocol = MyServerProtocol
 
-#reactor.listenTCP(6654, factory)
-#reactor.run()
+reactor.listenTCP(6654, factory)
+reactor.run()
