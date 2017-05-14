@@ -57,7 +57,8 @@ class MyServerProtocol(WebSocketServerProtocol):
 	def onMessage(self, payload, isBinary):
 		print "ID received was " + payload
 		self.factory.addId(self, payload)
-		self.factory.sendMessageWebSocket(payload, determine_split())
+		self.factory.sendMessageWebSocket(payload, str(determine_split('./uploading/' + payload +'.mp4', 5.0)))
+		process(payload)
 	def onClose(self, wasClean, code, reason):
 		1
 	#def onMessage(self, payload, isBinary):
@@ -329,8 +330,8 @@ for x in range(0, 1):
 
 time.sleep(10)
 #process("1494544527034")
-#factory = MyServerFactory(u"ws://0.0.0.0:6654")
-#factory.protocol = MyServerProtocol
+factory = MyServerFactory(u"ws://0.0.0.0:6654")
+factory.protocol = MyServerProtocol
 
-#reactor.listenTCP(6654, factory)
-#reactor.run()
+reactor.listenTCP(6654, factory)
+reactor.run()

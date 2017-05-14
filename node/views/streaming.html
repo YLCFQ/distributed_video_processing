@@ -3,9 +3,9 @@
 <title>Streaming</title>
 <script type="text/javascript">
 
-var id = "130000";
-var address = '54.193.119.113';
-var port = '6654';
+var id = <%- JSON.stringify(id) %>;
+var address = <%- JSON.stringify(address) %>;
+var port = <%- JSON.stringify(port) %>;
 
 var stream = [];
 
@@ -19,10 +19,6 @@ var streaming = new WebSocket('ws://' + address + ':' + port);
 streaming.onopen = function(){
 	streaming.send(id);
 }
-streaming.onmessage = function(e){
-	console.log("Received message");
-	console.log(e.data);
-}
 console.log("Ready to go!");
 function parseChunk(name){
 	return name.replace(id + "_", "").replace(".mov", "");
@@ -31,9 +27,10 @@ function parseChunk(name){
 streaming.onmessage = function(e){
 	if (firstMessage){
 		console.log("Making bucket sort");
-		var count = Integer.parseInt(e.data);
+		console.log(e.data);
+		var count = parseInt(e.data);
 		for(var i=0; i<count + 1; i++){
-			stream.append("None");
+			stream.push("None");
 		}
 		console.log("Bucket sort complete");
 		firstMessage = false;

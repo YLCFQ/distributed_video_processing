@@ -17,7 +17,7 @@ router.post('/', multipartMiddleware, function(req, res){
 		});
 		
 
-	return res.render('streaming', {id: milliseconds, address: "127.0.0.1", port: "6654"});
+	return res.render('streaming', {id: milliseconds, address: "54.193.119.113", port: "6654"});
 	
 }); 
 	
