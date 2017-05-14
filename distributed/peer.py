@@ -13,12 +13,16 @@ import cv2
 import sys
 import numpy as np
 
+import paramiko
+
 
 packet_queue = deque()
 process_queue = deque()
 packet_semaphore = threading.Semaphore(0)
 process_semaphore = threading.Semaphore(0)
 alive = True
+
+#image_
 image_format = "png"
 
 #dlib library
@@ -28,11 +32,21 @@ predictor = dlib.shape_predictor('./shape_predictor_68_face_landmarks.dat') #dir
 #resize the image 
 image_ratio = 0.6
 
+#ip address of main directory
+dire_address =  "127.0.0.1"
+
+#paramiko
+pem_key = paramiko.RSAKey.from_private_key_file("/home/ubuntu/key/Distributed.pem")
+client = paramiko.SSHClient()
+client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+client.connect(hostname = dire_address, username = 'ubuntu', key_filename = pem_key)	
+sftp = client.open_sftp()
+
 def in_rect(r, p):
     return p[0] > r[0] and p[1] > r[1] and p[0] < r[2] and p[1] < r[3] 
 
 def ScanFrames (input_path, output_path, index):
-	global image_format
+	global image_format, sftp
 	g = glob.glob(input_path + "*.png")
 	print "ScanFrames starts!!!!"
 	for i, fn in enumerate(g):
@@ -48,6 +62,11 @@ def ScanFrames (input_path, output_path, index):
 	print ("building begin!!")
 	ffmpegBuild = subprocess.Popen(["ffmpeg", "-i", midPath, output_path + str(index) + "_final.mp4"], stdout=outstream, stderr=subprocess.STDOUT)# Run FFMPEG to rebake the video
 	ffmpegBuild.wait()
+
+	#paramiko
+	stfp.put(output_path + str(index) + "_final.mp4", output_path + str(index) + "_final.mp4")
+
+
 	end = datetime.now()
 	print ("building completed in :" + str(end-start))
 	print "ScanFrames ends!!"
@@ -165,7 +184,8 @@ def cleanUpImages(input_path, output_path):
 		os.remove(f)
 	for f in glob.glob(output_path[:output_path.rfind(".")] + "*.png"):
 		os.remove(f)
-
+	for f in glob.glob(output_path[:output_path.rfind(".")] + "*.mp4"):
+		os.remove(f)
 
 
 class PacketThread(threading.Thread):
@@ -202,7 +222,7 @@ class ProcessThread(threading.Thread):
 				print "Found something in process_queue"
 				request = process_queue.popleft()
 				input_path = './received_images/' + str(request.id) + "/" + str(request.index) +"/"
-				output_path = './processing/'+ str(request.id) + '/completed' + "/"
+				output_path = '/home/ubuntu/dvp/distributed/processing/'+ str(request.id) + '/completed' + "/"
 				print ("the id is : " + str(request.id) + "the index is : " + str(request.index))
 				print (input_path)
 				print (output_path)
@@ -253,6 +273,8 @@ try:
 	print initialHeader.size
 	print len(str(registerPacket.pack()))
 	print len(str(initialHeader.pack()))
+
+
 	peer_socket.sendall(initialHeader.pack())
 	peer_socket.sendall(registerPacket.pack())
 

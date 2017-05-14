@@ -31,11 +31,14 @@ peer_count = -1
 image_format = "png"
 chunk_duration = 5.0
 
+#pem key
+pem_key = paramiko.RSAKey.from_private_key_file("/home/ubuntu/key/Distributed.pem")
+
 
 
 class AllowAnythingPolicy(paramiko.MissingHostKeyPolicy):
-    def missing_host_key(self, client, hostname, key):
-        return
+	def missing_host_key(self, client, hostname, key):
+		return
 
 
 def my_callback(filename, bytes_so_far, bytes_total):
@@ -128,7 +131,7 @@ class AcceptThread(threading.Thread):
 		threading.Thread.__init__(self)
 		self.socket = socket
 	def run(self):
-		global alive, peer_servers, peer_paramiko
+		global alive, peer_servers, peer_paramiko, pem_key
 		print "Server is ready to accept peer connections."
 		while alive:
 			(new_socket, address) = self.socket.accept()
@@ -136,7 +139,7 @@ class AcceptThread(threading.Thread):
 
 			client = paramiko.SSHClient()
 			client.set_missing_host_key_policy(AllowAnythingPolicy())
-			client.connect(address[0], username = 'chenyulong', password = 'xiuzhen')
+			client.connect(address[0], username = 'chenyulong', password = 'xiuzhen', key_filename = pem_key)
 			peer_paramiko[new_socket] = client
 			print (peer_paramiko)
 
@@ -234,19 +237,19 @@ def send_available(id, index, path):
 
 	client = peer_paramiko.get(peer_servers[peer_count])
 
-	dest_path = '/Users/chenyulong/Documents/dvp/distributed/received_images/' + str(id) + '/' + str(index) + '/'
+	dest_path = '/home/ubuntu/dvp/distributed/received_images/' + str(id) + '/' + str(index) + '/'
 
-	#stdin, stdout, stderr = client.exec_command('mkdir -p' + dest_path)
-	#stdin.close()
-	#sftp = client.open_sftp()
+	stdin, stdout, stderr = client.exec_command('mkdir -p' + dest_path)
+	stdin.close()
+	sftp = client.open_sftp()
 
 	#sftp.chdir('/Users/chenyulong/Documents/dvp/distributed/processing/'  + str(id) + '/' + str(index) + '/')
-	#for root, directories, filenames in os.walk(path):
-	#	for filename in filenames:
-	#		callback_for_filename = functools.partial(my_callback, filename)
-	#		sftp.get(filename, dest_path + filename, callback=callback_for_filename)
+	for root, directories, filenames in os.walk(path):
+		for filename in filenames:
+			callback_for_filename = functools.partial(my_callback, filename)
+			sftp.put(filename, dest_path + filename, callback=callback_for_filename)
 	#client.close()
-	
+
 	#paramiko
 	#send all files in path
 	#print "Walking path " + path
