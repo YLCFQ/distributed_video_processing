@@ -328,7 +328,7 @@ for x in range(0, 1):
 	ProcessThread(x).start()
 
 time.sleep(10)
-process("1494544527034")
+#process("1494544527034")
 #factory = MyServerFactory(u"ws://0.0.0.0:6654")
 #factory.protocol = MyServerProtocol
 
