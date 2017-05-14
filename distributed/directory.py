@@ -131,11 +131,11 @@ class PacketThread(threading.Thread):
 			if packet_queue:
 				packet = packet_queue.popleft()
 
-				if type(packet) is RegisterPacket.value:
+				if type(packet) is RegisterPacket:
 					#Handle register pqacket here
 					print "Handling register packet"
-				elif type(packet) is LoadPacket.value:
-					os.rename('/home/ubuntu/dvp/distributed/processing/' + str(packet.id) + '/completed/' + str(packet.index) + 'mp4', 'usr/share/nginx/html/static/' + str(packet.id) + '_' + str(packet.index) + '.mp4')
+				elif type(packet) is LoadPacket:
+					os.rename('/home/ubuntu/dvp/distributed/processing/' + str(packet.id) + '/completed/' + str(packet.index) + '_final.mp4', '/usr/share/nginx/html/static/' + str(packet.id) + '_' + str(packet.index) + '.mp4')
 					factory.sendMessageWebSocket(str(packet.id), 'http://54.193.119.113/static/' + str(packet.id) + '_' + str(packet.index) + '.mp4')
 
 
@@ -187,13 +187,13 @@ class ReceiveThread(threading.Thread):
 			if packetBytes == '':
 				self.alive = False
 
-			if header.type == PacketType.Register:
+			if header.type == PacketType.Register.value:
 				print "Found a register packet!"
 				packet = RegisterPacket()
 				packet.unpack(packetBytes)
 				packet_queue.append(packet)
 			
-			elif header.type == PacketType.Load:
+			elif header.type == PacketType.Load.value:
 				packet = LoadPacket()
 				packet.unpack(packetBytes)
 				packet_queue.append(packet)
