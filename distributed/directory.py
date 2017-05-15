@@ -16,7 +16,7 @@ from shutil import copyfile
 
 import functools
 import paramiko
-
+log.startLogging(sys.stdout)
 alive = False
 process_queue = deque()
 process_semaphore = threading.Semaphore(0)
