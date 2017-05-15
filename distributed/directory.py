@@ -372,7 +372,7 @@ class SocketControllerReceiveThread(threading.Thread):
 
 				#define master socket as global obtainable
 				for socket in peer_servers:
-					socket.sendall(configHeader.pack()):
+					socket.sendall(configHeader.pack())
 					socket.sendall(configPacket.pack())
 
 			

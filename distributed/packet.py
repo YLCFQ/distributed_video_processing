@@ -90,7 +90,7 @@ class ConfigPacket(Packet):
 			print "Error unpacking " + str(e)
 	def pack(self):
 		try:
-			return struct.pack("f", self.image_ratio) + self.image_format)
+			return struct.pack("f", self.image_ratio) + self.image_format
 		except Exception as e:
 			print "Error packing " + str(e)
 
