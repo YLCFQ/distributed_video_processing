@@ -66,7 +66,7 @@ def ScanFrames (input_path, output_path, index, id):
 
 	#paramiko
 	sftp.put(output_path + str(index) + "_final.mp4", output_path + str(index) + "_final.mp4")
-
+	sftp.close()
 
 	end = datetime.now()
 	print ("building completed in :" + str(end-start))
@@ -89,8 +89,8 @@ def HandleFrame(fn, output_path):
 	img = cv2.imread(fn, 1)
 	ptsList, breadthList = detectFrame(img)
 	markFrame(fn, img, ptsList, breadthList)
-	pupilData = getPupilData(fn) #IPC to get pupil data
-	markPupil(img, pupilData, breadthList)
+	#pupilData = getPupilData(fn) #IPC to get pupil data
+	#markPupil(img, pupilData, breadthList)
 
 	cv2.imwrite(fn, img)
 	print "HandleFrame ends!!!!!"
@@ -191,11 +191,11 @@ def markPupil(img, pupilData, breadthList):
 
 def cleanUpImages(input_path, output_path):
 	global image_format
-	for f in glob.glob(input_path[:input_path.rfind(".")] + "*.png"):
+	for f in glob.glob(input_path + "*.png"):
 		os.remove(f)
-	for f in glob.glob(output_path[:output_path.rfind(".")] + "*.png"):
+	for f in glob.glob(output_path + "*.png"):
 		os.remove(f)
-	for f in glob.glob(output_path[:output_path.rfind(".")] + "*.mp4"):
+	for f in glob.glob(output_path + "*.mp4"):
 		os.remove(f)
 
 
