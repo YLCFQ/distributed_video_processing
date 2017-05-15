@@ -1,4 +1,5 @@
 import socket
+import sys
 from packet import PacketType, Packet, RegisterPacket, LoadPacket, Header, ConfigPacket
 import threading
 import time
