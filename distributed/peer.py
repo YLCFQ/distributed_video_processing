@@ -219,8 +219,8 @@ class PacketThread(threading.Thread):
 					process_queue.append(ProcessRequest(packet.index, packet.id))
 					process_semaphore.release()
 				elif type(packet) is ConfigPacket:
-					image_ratio = ConfigPacket.image_ratio
-					image_format = ConfigPacket.image_format
+					image_ratio = packet.image_ratio
+					image_format = packet.image_format
 					print "Changed image ratio"
 					print image_ratio
 					print "Changed image format"
