@@ -4,7 +4,7 @@ import os, inspect
 import time
 import subprocess
 from collections import deque
-from packet import Packet, PacketType, Header, RegisterPacket, LoadPacket
+from packet import Packet, PacketType, Header, RegisterPacket, LoadPacket, ConfigPacket
 
 import glob
 from datetime import datetime
