@@ -37,7 +37,6 @@ pem_key = paramiko.RSAKey.from_private_key_file("/home/ubuntu/key/Distributed.pe
 #default values
 current_image_format = "png"
 current_image_ratio = 0.6
-current_split_time = 5.0:
 
 class AllowAnythingPolicy(paramiko.MissingHostKeyPolicy):
 	def missing_host_key(self, client, hostname, key):
@@ -337,7 +336,7 @@ class SocketControllerReceiveThread(threading.Thread):
 		threading.Thread.__init__(self)
 		self.socket = socket
 	def run(self):
-		global current_image_ratio, chunk_duration, current_image_format, peer_servers
+		global current_image_ratio, chunk_duration, image_format, peer_servers
 		clientAlive = True
 		while clientAlive:
 			commandBytes = self.socket.recv(100)
@@ -354,8 +353,8 @@ class SocketControllerReceiveThread(threading.Thread):
 					chunk_duration = float(split_command[1])
 					tupacChanges = True
 				if(split_command[2] == "image_format"):
-					current_image_format = split_command[1]	
-					tupacChanges
+					image_format = split_command[1]
+					tupacChanges = True
 
 			if tupacChanges:
 				tupacChanges = False
@@ -364,7 +363,7 @@ class SocketControllerReceiveThread(threading.Thread):
 				
 				configPacket = ConfigPacket()
 				configPacket.image_ratio = current_image_ratio
-				configPacket.image_format = current_image_format
+				configPacket.image_format = image_format
 				
 				configHeader.size = len(configPacket.pack())
 
