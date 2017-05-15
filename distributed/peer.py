@@ -203,7 +203,7 @@ class PacketThread(threading.Thread):
 	def __init__(self):
 		threading.Thread.__init__(self)
 	def run(self):
-		global process_semaphore, packet_semaphore, process_queue, packet_queue
+		global process_semaphore, packet_semaphore, process_queue, packet_queue, image_ratio, image_format
 		while alive:
 			print "Waiting for a packet.."
 			packet_semaphore.acquire()
@@ -218,6 +218,10 @@ class PacketThread(threading.Thread):
 					print "Added load packet to process queue with id " + str(packet.id) + " index: " + str(packet.index)
 					process_queue.append(ProcessRequest(packet.index, packet.id))
 					process_semaphore.release()
+				elif type(packet) is ConfigPacket:
+					image_ratio = ConfigPacket.image_ratio
+					image_format = ConfigPacket.image_format
+					
 
 
 
@@ -280,6 +284,10 @@ class ReceiveThread(threading.Thread):
 				packet.unpack(packetBytes)
 				packet_queue.append(packet)
 				print len(packet_queue)
+			elif header.type = PacketType.Config.value:
+				packet = ConfigPacket()
+				packet.unpack(packetBytes)
+				packet_queue.append(packet)
 
 			packet_semaphore.release()
 
