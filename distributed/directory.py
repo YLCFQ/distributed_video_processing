@@ -401,6 +401,7 @@ for x in range(0, 1):
 
 time.sleep(10)
 #process("1494544527034")
+SocketControllerThread().start()
 factory = MyServerFactory(u"ws://0.0.0.0:6654")
 factory.protocol = MyServerProtocol
 
