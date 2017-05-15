@@ -287,7 +287,7 @@ class ReceiveThread(threading.Thread):
 				packet.unpack(packetBytes)
 				packet_queue.append(packet)
 				print len(packet_queue)
-			elif header.type = PacketType.Config.value:
+			elif header.type == PacketType.Config.value:
 				packet = ConfigPacket()
 				packet.unpack(packetBytes)
 				packet_queue.append(packet)
