@@ -57,8 +57,9 @@ class MyServerProtocol(WebSocketServerProtocol):
 	def onMessage(self, payload, isBinary):
 		print "ID received was " + payload
 		self.factory.addId(self, payload)
+		self.factory.sendMessageWebSocket(payload, "Peter is gay");
 		self.factory.sendMessageWebSocket(payload, str(determine_split('./uploading/' + payload +'.mp4', 5.0)))
-		process(payload)
+		MeowThread(payload).start()
 	def onClose(self, wasClean, code, reason):
 		1
 	#def onMessage(self, payload, isBinary):
@@ -81,7 +82,7 @@ class MyServerFactory(WebSocketServerFactory):
 		c = self.clients[id]
 		if not c is None:
 			print "Sending message"
-			c.sendMessage(payload, False)
+			c.sendMessage(payload)
 	
 
 class ProcessRequest:
@@ -139,6 +140,12 @@ class PacketThread(threading.Thread):
 					factory.sendMessageWebSocket(str(packet.id), 'http://54.193.119.113/static/' + str(packet.id) + '_' + str(packet.index) + '.mp4')
 
 
+class MeowThread(threading.Thread):
+	def __init__(self, payload):
+		threading.Thread.__init__(self)
+		self.payload = payload
+	def run(self):
+		process(self.payload)
 def add_file(path):
 	1
 	#Remove and move somewhere else
