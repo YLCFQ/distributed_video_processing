@@ -350,11 +350,11 @@ class SocketControllerReceiveThread(threading.Thread):
 					current_image_ratio = float(split_command[1])
 					print current_image_ratio
 					tupacChanges = True
-				if(split_command[1] == "split_time"):
+				if(split_command[0] == "split_time"):
 					chunk_duration = float(split_command[1])
 					print chunk_duration
 					tupacChanges = True
-				if(split_command[2] == "image_format"):
+				if(split_command[0] == "image_format"):
 					image_format = split_command[1]
 					print image_format
 					tupacChanges = True
