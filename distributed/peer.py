@@ -221,7 +221,10 @@ class PacketThread(threading.Thread):
 				elif type(packet) is ConfigPacket:
 					image_ratio = ConfigPacket.image_ratio
 					image_format = ConfigPacket.image_format
-					
+					print "Changed image ratio"
+					print image_ratio
+					print "Changed image format"
+					print image_format	
 
 
 
