@@ -34,7 +34,10 @@ chunk_duration = 5.0
 #pem key
 pem_key = paramiko.RSAKey.from_private_key_file("/home/ubuntu/key/Distributed.pem")
 
-
+#default values
+current_image_format = "png"
+current_image_ratio = 0.6
+current_split_time = 5.0:
 
 class AllowAnythingPolicy(paramiko.MissingHostKeyPolicy):
 	def missing_host_key(self, client, hostname, key):
@@ -318,7 +321,66 @@ def send_available(id, index, path):
 	peer_servers[peer_count].sendall(loadHeader.pack())
 	peer_servers[peer_count].sendall(loadPacket.pack())
 
+class SocketControllerThread(threading.Thread):
+	def __init__(self):
+		threading.Thread.__init__(self)
+		self.socket = socket(socket.AF_INET, sock.SOCK_STREAM)
+		self.socket.bind(('0.0.0.0', 2555))
+		self.socket.listen(0)
+	def run(self):
+		while alive:
+			(client_socket, address ) = self.socket.accept()	
+			SocketControllerReceiveThread(client_socket).start()
 
+class SocketControllerReceiveThread(threading.Thread):
+	def __init__(self, socket):
+		threading.Thread.__init__(self)
+		self.socket = socket
+	def run(self):
+		global current_image_ratio, chunk_duration, current_image_format, peer_servers
+		clientAlive = True
+		while clientAlive:
+			commandBytes = self.socket.recv(100)
+			commands = commandBytes.split(';')
+			tupacChanges = False
+			for command in commands:
+				split_command = command.split(' ')
+				if len(split_command) < 2:
+					continue
+				if(split_command[0] == "image_ratio"):
+					current_image_ratio = float(split_command[1])
+					tupacChanges = True
+				if(split_command[1] == "split_time"):
+					chunk_duration = float(split_command[1])
+					tupacChanges = True
+				if(split_command[2] == "image_format"):
+					current_image_format = split_command[1]	
+					tupacChanges
+
+			if tupacChanges:
+				tupacChanges = False
+				configHeader = Header()
+				configHeader.type = PacketType.Config
+				
+				configPacket = ConfigPacket()
+				configPacket.image_ratio = current_image_ratio
+				configPacket.image_format = current_image_format
+				
+				configHeader.size = len(configPacket.pack())
+
+				#define master socket as global obtainable
+				for socket in peer_servers:
+					socket.sendall(configHeader.pack()):
+					socket.sendall(configPacket.pack())
+
+			
+
+	
+				
+				
+			
+			
+		
 
 
 alive = True

@@ -6,6 +6,7 @@ class PacketType(Enum):
 	Packet = 0
 	Register = 1
 	Load = 2
+	Config = 3
 	
 #4 bytes for packet type
 #4 bytes for packet size
@@ -72,8 +73,24 @@ class LoadPacket(Packet):
 			print "Error unpacking " + str(e)
 	def pack(self):
 		try:
-			print struct.pack("q", long(self.id)) + struct.pack("i", int(self.index))
 			return struct.pack("q", long(self.id)) + struct.pack("i", int(self.index))
+		except Exception as e:
+			print "Error packing " + str(e)
+
+class ConfigPacket(Packet):
+	image_ratio = 0.0
+	image_format = "png"
+	def __init__(self):
+		1
+	def unpack(self, bytes):
+		try:
+			self.image_ratio = struct.unpack_from("f", bytes[0:4])[0]
+			self.image_format = bytes[4:7]
+		except Exception as e:
+			print "Error unpacking " + str(e)
+	def pack(self):
+		try:
+			return struct.pack("f", self.image_ratio) + self.image_format)
 		except Exception as e:
 			print "Error packing " + str(e)
 
